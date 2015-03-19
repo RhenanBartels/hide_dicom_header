@@ -6,9 +6,6 @@ to hide some personal information.
 
 Example:
 
-'''unix
+$ ./hide_dicom_header.py /path/to/topdir
 
-./hide_dicom_header.py /path/to/topdir
-
-'''
 
