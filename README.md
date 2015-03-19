@@ -1,0 +1,2 @@
+Hide DICOM HEADER
+==================
