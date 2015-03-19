@@ -10,28 +10,30 @@ import dicom
 reload(sys)
 sys.setdefaultencoding('Cp1252')
 
-FIELD_NAMES = ["PatientName"]
+#Desired fields
+FIELD_NAMES = ["Institution Name", "Private Creator"]
 SECRET_FIELD = "************"
 FILE_EXTENSION = ".dcm"
 
 
-class Dicom():
+class Dicom(object):
     def __init__(self, path):
         self.path = path
         self.total_altered_files = 0
 
-        print("Counting the number of .dcm files...")
-        self.total_files = self._file_count()
-        print("Done!")
-        print("Number of DICOM files: " + str(self.total_files))
-
     def execute(self):
+        print "Counting the number of DICOM files..."
+        self.total_files = self._file_count()
+        print "Done!"
+        print "Number of DICOM files: " + str(self.total_files)
+
         topdir = self.path
         os.path.walk(topdir, self._step, FILE_EXTENSION)
 
     def _step(self, ext, dirname, names):
         """
-        function that is used with os module to walk through directory tree
+        function used with os module to walk through directory tree
+        to alter the desired fields
         """
         altered_files = 0
         for name in names:
@@ -48,11 +50,11 @@ class Dicom():
 
     def _file_count(self):
         """
-        function that is used with os module to walk through directory tree
+        function used with os module to walk through directory tree
+        and count the DICOM files
         """
         path = sys.argv[1]
-        directories = file_number = 0
-
+        file_number = 0
         for information in os.walk(path):
             files = information[2]
             for file in files:
@@ -77,12 +79,12 @@ class Dicom():
             tag and replace with ****************
 
         """
-        #Every field related to Names (physician or patient)
-        #have the PN tag
+        #Hide the field that have PN tag
         if data_element.VR == "PN":
-            pass
-            #data_element.value = SECRET_FIELD
-
+            data_element.value = SECRET_FIELD
+        #Hide some other fields within FIELD_NAMES list
+        if data_element.name.strip() in FIELD_NAMES:
+            data_element.value = SECRET_FIELD
 
 if __name__ == '__main__':
     topdir = sys.argv[1]
