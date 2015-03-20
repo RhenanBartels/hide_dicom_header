@@ -11,7 +11,7 @@ reload(sys)
 sys.setdefaultencoding('Cp1252')
 
 #Desired fields
-FIELD_NAMES = ["Institution Name", "Private Creator"]
+FIELD_NAMES = ["Institution Name"]
 SECRET_FIELD = "************"
 FILE_EXTENSION = ".dcm"
 
@@ -22,10 +22,10 @@ class Dicom(object):
         self.total_altered_files = 0
 
     def execute(self):
-        print "Counting the number of DICOM files..."
+        self.log("\nCounting the number of DICOM files...")
         self.total_files = self._file_count()
-        print "Done!"
-        print "Number of DICOM files: " + str(self.total_files)
+        self.log("\nDone!")
+        self.log("\nNumber of DICOM files: {}".format(self.total_files))
 
         topdir = self.path
         os.path.walk(topdir, self._step, FILE_EXTENSION)
@@ -42,11 +42,17 @@ class Dicom(object):
                 self. _open_dicom(file_name)
                 altered_files += 1
                 total = self.total_altered_files + altered_files
-                sys.stdout.write("\rAltered Files: %d/%d  - %3.2f%%" %
-                                 (total, self.total_files,
-                                  (total / float(self.total_files)) * 100))
-                sys.stdout.flush()
+                percentual = (total / float(self.total_files)) * 100
+                self.log("\rAltered Files: {altered}/{total} - "
+                         "{percent:3.2f}%".format(altered=total,
+                         total=self.total_files, percent=percentual))
+                self._save_dicom(file_name)
+
         self.total_altered_files += altered_files
+
+    def log(self, message, to=sys.stdout):
+        to.write(message)
+        to.flush()
 
     def _file_count(self):
         """
@@ -64,13 +70,21 @@ class Dicom(object):
 
     def _open_dicom(self, file_path):
         """
-        Open dicom file
+        Open DICOM file
 
         """
-        dicom_file = dicom.read_file(file_path)
+        self.dicom_file = dicom.read_file(file_path)
 
         #Execute a function inside each dicom
-        dicom_file.walk(self._dicom_callback)
+        self.dicom_file.walk(self._dicom_callback)
+
+    def _save_dicom(self, file_name):
+        """
+        Save DICOM file
+        """
+        output_name, extension = file_name.split(FILE_EXTENSION)
+        output_name = output_name + "_altered" + FILE_EXTENSION
+        #self.dicom_file.save_as(output_name)
 
     def _dicom_callback(self, ds, data_element):
         """
@@ -85,10 +99,16 @@ class Dicom(object):
         #Hide some other fields within FIELD_NAMES list
         if data_element.name.strip() in FIELD_NAMES:
             data_element.value = SECRET_FIELD
+        #print data_element
 
 if __name__ == '__main__':
-    topdir = sys.argv[1]
-    start_time = time.time()
-    dicom_object = Dicom(topdir)
-    dicom_object.execute()
-    print "\nElapsed Time: %s minutes" % ((time.time() - start_time) / 60)
+    if len(sys.argv) - 1:
+        topdir = sys.argv[1]
+
+        start_time = time.time()
+        dicom_object = Dicom(topdir)
+        dicom_object.execute()
+        dicom_object.log("\nElapsed Time: {:3.2f} minutes\n".
+                         format(((time.time() - start_time) / 60)))
+    else:
+        print "You need to specify the path of directory"
